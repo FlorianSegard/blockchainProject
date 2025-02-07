@@ -13,11 +13,14 @@ This project is a decentralized version of Twitter built on a blockchain. It all
 ### 1. **UserContract**
 - Manages user registrations and stores user profiles in a big map.
 - Prevents duplicate accounts by mapping addresses to user IDs.
+- Contract ID: **KT1GFJgQGQUZzEuyqBrd8U9mCjqPRwhnzw2e**
+
 
 ### 2. **TweetContract**
 - Stores tweets and links them to users via user IDs.
 - Ensures only registered users can post tweets.
 - Supports tweet deletion by the author.
+- Contract ID: **KT1RtUit2h4cWm5hXgxc8DQcJkB1XctYHVdr**
 
 ## Deployment
 - The contracts can be deployed on any blockchain supporting SmartPy (e.g., Ghostnet or other test networks).
