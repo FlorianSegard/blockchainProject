@@ -89,3 +89,27 @@ def test():
     scenario.verify(c1.data.users[user1].deleted == True)
 
     c1.delete_user(_sender=user3, _valid=False, _exception="NO_USER_TO_DELETE")
+
+
+    c2 = main.TweetContract()
+    scenario += c2
+    
+    c2.post_tweet("Hello, world!", _sender=user1, _now=sp.timestamp_from_utc(2025, 2, 7, 12, 10, 0))
+    scenario.verify(c2.data.tweets[0].author == user1)
+    scenario.verify(c2.data.tweets[0].content == "Hello, world!")
+    scenario.verify(c2.data.tweets[0].deleted == False)
+    
+    c2.post_tweet("Another day, another tweet.", _sender=user2, _now=sp.timestamp_from_utc(2025, 2, 7, 12, 15, 0))
+    scenario.verify(c2.data.tweets[1].author == user2)
+    scenario.verify(c2.data.tweets[1].content == "Another day, another tweet.")
+    
+    long_tweet = "A" * 281
+    c2.post_tweet(long_tweet, _sender=user1, _valid=False, _exception="ERROR_TWEET_TOO_LONG")
+    
+    c2.delete_tweet(0, _sender=user1)
+    scenario.verify(c2.data.tweets[0].deleted == True)
+        
+    c2.delete_tweet(1, _sender=user1, _valid=False, _exception="NOT_RIGHT_PERSON")
+    
+    c2.delete_tweet(1, _sender=user2)
+    scenario.verify(c2.data.tweets[1].deleted == True)
