@@ -17,7 +17,7 @@ def main():
         @sp.entry_point
         def create_user(self, username, bio):
             assert len(bio) <= 150, "BIO_TOO_LONG"
-            assert not self.data.users.contains(sp.sender), "ALREADY_CREATED_USER"
+            assert not self.data.users.contains(sp.sender) or self.data.users[sp.sender].deleted, "ALREADY_CREATED_USER"
             self.data.users[sp.sender] = sp.record(
                 id=self.data.next_id,
                 username = username,
@@ -87,6 +87,7 @@ def test():
     c1.delete_user(_sender=user1)
     scenario.verify(c1.data.users[user1].username == "Pablito")
     scenario.verify(c1.data.users[user1].deleted == True)
+    c1.create_user(username = "Pablito", bio = "Hello, Glenn!", _sender=user1, _now=sp.timestamp_from_utc(2025, 2, 7, 12, 0, 0))
 
     c1.delete_user(_sender=user3, _valid=False, _exception="NO_USER_TO_DELETE")
 
