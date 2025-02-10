@@ -1,0 +1,128 @@
+/* General Page Styling */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f7f9fa; /* light background */
+  }
+  
+  /* Navigation Bar */
+  .navbar {
+    background-color: #1DA1F2; /* Twitter-like blue */
+    padding: 10px 20px;
+  }
+  
+  .logo-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .logo {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+  }
+  
+  .app-title {
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+  }
+  
+  /* Main Container */
+  .main-container {
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 0 20px;
+  }
+  
+  /* Input Container */
+  #input-container {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+  }
+  
+  #tweet-input {
+    font-size: 16px;
+    padding: 10px;
+    resize: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  
+  #tweet-button {
+    align-self: flex-end;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    background-color: #1DA1F2;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  #tweet-button:hover {
+    background-color: #1991da;
+  }
+  
+  /* Feed Container */
+  #feed-container {
+    padding-top: 20px;
+  }
+  
+  /* Individual Tweet (Card Style) */
+  .tweet {
+    background-color: #fff;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  /* Header Row: user info on the left, actions (delete) on the right */
+  .tweet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  /* User Info */
+  .tweet-user-info {
+    font-weight: bold;
+  }
+  
+  /* Name + ID styling */
+  .tweet-user-username {
+    margin-right: 8px;
+  }
+  
+  .tweet-user-id {
+    color: #555;
+  }
+  
+  /* Actions (Delete Button) */
+  /* .tweet-actions {
+  } */   /* You can add margin or styling here if needed */
+  
+  .delete-btn {
+    background-color: #ff4d4f;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  
+  .delete-btn:hover {
+    background-color: #d9363e;
+  }
+  
+  /* Tweet Content */
+  .tweet-content {
+    margin-top: 8px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  

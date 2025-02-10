@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Twitter-like Skeleton</title>
+  <!-- Link to external CSS file -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="logo-container">
+      <!-- Placeholder logo -->
+      <img src="twitter-logo.png" alt="Logo" class="logo" />
+      <span class="app-title">Twitter-like Skeleton</span>
+    </div>
+  </nav>
+
+  <!-- Main content container -->
+  <div class="main-container">
+    <!-- Tweet input area -->
+    <div id="input-container">
+      <textarea id="tweet-input" rows="3" placeholder="What's happening?"></textarea>
+      <button id="tweet-button">Tweet</button>
+    </div>
+
+    <!-- Feed container -->
+    <div id="feed-container"></div>
+  </div>
+
+  <script>
+    // Placeholder for the "current user" tweeting
+    const currentUser = {
+      username: 'test',
+      id: '2'
+    };
+
+    // In-memory array of tweets for demonstration
+    const tweets = [
+      {
+        user: { username: 'glennlebg', id: '1' },
+        content: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAA!'
+      },
+      {
+        user: { username: 'aaa', id: '3' },
+        content: 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBB.'
+      }
+    ];
+
+    /**
+     * Renders all tweets from the "tweets" array into the feed container.
+     * Each tweet includes a Delete button ONLY if it belongs to the current user.
+     */
+    function renderFeed() {
+      const feedContainer = document.getElementById('feed-container');
+      feedContainer.innerHTML = ''; // Clear existing tweets
+
+      tweets.forEach((tweet, index) => {
+        const tweetDiv = document.createElement('div');
+        tweetDiv.className = 'tweet';
+
+        // Conditionally show the delete button if the tweet belongs to the current user
+        let deleteButtonHTML = '';
+        if (tweet.user.id === currentUser.id) {
+          deleteButtonHTML = `
+            <button class="delete-btn" onclick="deleteTweet(${index})">
+              Delete
+            </button>
+          `;
+        }
+
+        tweetDiv.innerHTML = `
+          <div class="tweet-header">
+            <div class="tweet-user-info">
+              <span class="tweet-user-username">${tweet.user.username}</span>
+              <span class="tweet-user-id">#${tweet.user.id}</span>
+            </div>
+            <div class="tweet-actions">
+              ${deleteButtonHTML}
+            </div>
+          </div>
+          <div class="tweet-content">${tweet.content}</div>
+        `;
+
+        feedContainer.appendChild(tweetDiv);
+      });
+    }
+
+    // Call this function when a user clicks "Delete" on their tweet
+    function deleteTweet(index) {
+      // Remove the tweet at position "index" from the array
+      tweets.splice(index, 1);
+      // Re-render the feed to reflect the removed tweet
+      renderFeed();
+    }
+
+    // Initial render of existing tweets
+    renderFeed();
+
+    // Handle Tweet button click
+    const tweetButton = document.getElementById('tweet-button');
+    const tweetInput = document.getElementById('tweet-input');
+
+    tweetButton.addEventListener('click', () => {
+      const text = tweetInput.value.trim();
+      if (!text) return; // If empty, do nothing
+
+      // Add new tweet at the top of the array
+      tweets.unshift({
+        user: { username: currentUser.username, id: currentUser.id },
+        content: text
+      });
+
+      // Re-render feed to show the new tweet
+      renderFeed();
+
+      // Clear input
+      tweetInput.value = '';
+    });
+  </script>
+
+</body>
+</html>
