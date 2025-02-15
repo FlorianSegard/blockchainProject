@@ -26,7 +26,8 @@ def main():
         def create_user(self, username, bio):
             assert len(username) <= 15, "USERNAME_TOO_LONG"
             assert len(bio) <= 150, "BIO_TOO_LONG"
-            assert not self.data.users.contains(sp.sender) or (self.data.users[sp.sender].deleted and not self.data.users[sp.sender].banned), "ALREADY_CREATED_USER"
+            assert not self.data.users.contains(sp.sender) or self.data.users[sp.sender].deleted, "ALREADY_CREATED_USER"
+            assert not self.data.users.contains(sp.sender) or not self.data.users[sp.sender].banned, "USER_IS_BANNED"
             assert sp.amount >= self.data.DEPOSIT_AMOUNT, "INSUFFICIENT_DEPOSIT"
             if not self.data.users.contains(sp.sender):
                 oracle_contract = sp.contract(sp.address,self.data.oracle_address,entrypoint="request_bot_checking").unwrap_some()
@@ -80,9 +81,8 @@ def main():
             if is_user_botting_opt.is_some():
                 is_user_botting = is_user_botting_opt.unwrap_some()
                 if is_user_botting:
-                    self.data.users[sp.sender].banned = True
-                    self.data.users[sp.sender].deleted = True
-                    assert False, "USER_BANNED_AND_DELETED_FOR_BOTTING"
+                    self.data.users[user_address].banned = True
+                    self.data.users[user_address].deleted = True
 
         @sp.entrypoint
         def default(self):
@@ -141,7 +141,7 @@ def main():
         @sp.entrypoint
         def receive_result(self,address_of_checked,sender,message,signature):
             sp.cast(message,sp.record(address_of_checked = sp.address,result = sp.bool))
-            key = (address_of_checked,sp.sender)
+            key = (address_of_checked,sender)
             assert sp.check_signature(self.data.source_public_key,signature,sp.pack(message))
             assert self.data.requests[key].result == None, "result already received"
             self.data.requests[key].result = sp.Some(message.result)
@@ -158,6 +158,8 @@ def test():
     user1 = sp.address("tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb")
     user2 = sp.address("tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6")
     user3 = sp.address("tz1afjrfnivoisnvdisubvospdncvr945dzd")
+    bot1_sim = sp.test_account("Bot1")
+    bot1 = bot1_sim.address
     source = sp.test_account("Test_source")
     scenario = sp.test_scenario("User Smart Contract", main)
     contract_oracle = main.BotFindingOracle(source.public_key)
@@ -180,6 +182,7 @@ def test():
     c1.delete_user(_sender=user1)
     scenario.verify(c1.data.users[user1].deleted == True)
 
+    c1.create_user(username="botter800", bio="I will spam everything", _sender=bot1, _amount=sp.tez(50), _now=sp.timestamp_from_utc(2025, 2, 7, 12, 0, 0))
     c1.create_user(username="Pablito", bio="Hello, Glenn!", _sender=user1, _amount=sp.tez(50), _now=sp.timestamp_from_utc(2025, 2, 7, 12, 0, 0))
     c1.delete_user(_sender=user3, _valid=False, _exception="NO_USER_TO_DELETE")
 
@@ -211,11 +214,27 @@ def test():
     c2.post_tweet("Hello!", _sender=user1, _now=sp.timestamp_from_utc(2025, 2, 7, 12, 0, 0), _valid=False, _exception="TOO_MANY_TWEETS_TOO_FAST")
     c2.post_tweet("world", _sender=user1, _now=sp.timestamp_from_utc(2025, 2, 7, 12, 1, 1))
 
+    message1 = sp.record(address_of_checked = user2, result = False)
+    signature1 = sp.make_signature(source.secret_key,sp.pack(message1))
+    contract_oracle.receive_result(address_of_checked = user2,
+                                  sender = c1.address,
+                                  message = message1,
+                                  signature = signature1)
+    message2= sp.record(address_of_checked = bot1, result = True)
+    signature2 = sp.make_signature(source.secret_key,sp.pack(message2))
+    contract_oracle.receive_result(address_of_checked = bot1,
+                                  sender = c1.address,
+                                  message = message2,
+                                  signature = signature2)
 
     c2.post_tweet("Another day, another tweet.", _sender=user2, _now=sp.timestamp_from_utc(2025, 2, 7, 12, 15, 0))
     scenario.verify(c2.data.tweets[2].author == user2)
-    scenario.verify(c2.data.tweets[2].content == "Another day, another tweet.")
+    c2.post_tweet("Another day, another tweet.", _sender=bot1, _now=sp.timestamp_from_utc(2025, 2, 7, 12, 15, 0))
 
+    c2.post_tweet("Another day, another tweet.", _sender=bot1, _now=sp.timestamp_from_utc(2025, 2, 8, 12, 15, 0),_valid=False, _exception="USER_DOES_NOT_EXIST")
+    scenario.verify(c2.data.tweets[2].content == "Another day, another tweet.")
+    c1.change_username("MessoGlenn", _sender=bot1, _now=sp.timestamp_from_utc(2025, 2, 8, 12, 0, 1),_valid=False,_exception="DELETED_USER")
+    c1.create_user(username="Guess who's bac", bio="aaaaa", _sender=bot1, _amount=sp.tez(50), _now=sp.timestamp_from_utc(2025, 2, 7, 12, 0, 0), _valid=False, _exception="USER_IS_BANNED")
     long_tweet = "A" * 281
     c2.post_tweet(long_tweet, _sender=user1, _valid=False, _exception="ERROR_TWEET_TOO_LONG")
 
