@@ -4,8 +4,9 @@ import smartpy as sp
 def main():    
     # USERS
     class UserContract(sp.Contract):
-        def __init__(self):
+        def __init__(self,oracle_address):
             self.data.DEPOSIT_AMOUNT = sp.tez(50)
+            self.data.oracle_address = oracle_address
             self.data.next_id = sp.nat(0)
             self.data.users = sp.big_map({})
             self.data.deposits = sp.big_map({})
@@ -16,7 +17,8 @@ def main():
                 timestamp=sp.timestamp,
                 last_username_change=sp.timestamp,
                 last_bio_change=sp.timestamp,
-                deleted=sp.bool
+                deleted=sp.bool,
+                banned=sp.bool
             )])
             sp.cast(self.data.deposits, sp.big_map[sp.address, sp.mutez])
 
@@ -24,8 +26,11 @@ def main():
         def create_user(self, username, bio):
             assert len(username) <= 15, "USERNAME_TOO_LONG"
             assert len(bio) <= 150, "BIO_TOO_LONG"
-            assert not self.data.users.contains(sp.sender) or self.data.users[sp.sender].deleted, "ALREADY_CREATED_USER"
+            assert not self.data.users.contains(sp.sender) or (self.data.users[sp.sender].deleted and not self.data.users[sp.sender].banned), "ALREADY_CREATED_USER"
             assert sp.amount >= self.data.DEPOSIT_AMOUNT, "INSUFFICIENT_DEPOSIT"
+            if not self.data.users.contains(sp.sender):
+                oracle_contract = sp.contract(sp.address,self.data.oracle_address,entrypoint="request_bot_checking").unwrap_some()
+                sp.transfer(sp.sender,sp.mutez(0),oracle_contract)
 
             self.data.users[sp.sender] = sp.record(
                 id=self.data.next_id,
@@ -34,7 +39,8 @@ def main():
                 timestamp=sp.now,
                 last_username_change=sp.now,
                 last_bio_change=sp.now,
-                deleted=False
+                deleted=False,
+                banned= False
             )
             self.data.deposits[sp.sender] = sp.amount
             self.data.next_id += 1
@@ -69,6 +75,14 @@ def main():
         @sp.entrypoint
         def verified(self, user_address):
             assert self.data.users.contains(user_address) and not self.data.users[user_address].deleted, "USER_DOES_NOT_EXIST"
+            #TODO check  data and banned and assert ban
+            is_user_botting_opt = sp.view("get_is_botting",self.data.oracle_address,(user_address,sp.self_address()),sp.option[sp.bool]).unwrap_some()
+            if is_user_botting_opt.is_some():
+                is_user_botting = is_user_botting_opt.unwrap_some()
+                if is_user_botting:
+                    self.data.users[sp.sender].banned = True
+                    self.data.users[sp.sender].deleted = True
+                    assert False, "USER_BANNED_AND_DELETED_FOR_BOTTING"
 
         @sp.entrypoint
         def default(self):
@@ -110,15 +124,46 @@ def main():
             assert self.data.tweets[id].author == sp.sender, "NOT_RIGHT_PERSON"
             self.data.tweets[id].deleted = True
 
+
+    #Oracle
+    class BotFindingOracle(sp.Contract):
+        def __init__(self,source_public_key):
+            self.data.requests = sp.big_map({})
+            self.data.source_public_key = source_public_key
+
+        @sp.entrypoint
+        def request_bot_checking(self,address_of_checked):
+            sp.cast(address_of_checked,sp.address)
+            key = (address_of_checked,sp.sender)
+            assert not self.data.requests.contains(key), "request exists already"
+            self.data.requests[key]=sp.record(address_of_checked = address_of_checked,result = None)
+
+        @sp.entrypoint
+        def receive_result(self,address_of_checked,sender,message,signature):
+            sp.cast(message,sp.record(address_of_checked = sp.address,result = sp.bool))
+            key = (address_of_checked,sp.sender)
+            assert sp.check_signature(self.data.source_public_key,signature,sp.pack(message))
+            assert self.data.requests[key].result == None, "result already received"
+            self.data.requests[key].result = sp.Some(message.result)
+
+        @sp.onchain_view()
+        def get_is_botting(self,key):
+            sp.cast(key,sp.pair[sp.address,sp.address])
+            return self.data.requests[key].result
+
+
+
 @sp.add_test()
 def test():
     user1 = sp.address("tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb")
     user2 = sp.address("tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6")
     user3 = sp.address("tz1afjrfnivoisnvdisubvospdncvr945dzd")
-
+    source = sp.test_account("Test_source")
     scenario = sp.test_scenario("User Smart Contract", main)
-    c1 = main.UserContract()
+    contract_oracle = main.BotFindingOracle(source.public_key)
+    c1 = main.UserContract(contract_oracle.address)
     scenario += c1
+    scenario += contract_oracle
 
     c1.create_user(username="Pablito", bio="Hello, Glenn!", _sender=user1, _amount=sp.tez(20), _now=sp.timestamp_from_utc(2025, 2, 7, 12, 0, 0), _valid=False, _exception="INSUFFICIENT_DEPOSIT")
 
